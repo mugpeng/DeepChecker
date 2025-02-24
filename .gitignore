@@ -1,0 +1,12 @@
+# ignore
+# file
+.DS_Store
+
+
+# dir
+/archive
+/uploads
+/images
+/__pycache__
+/node_modules
+/logs

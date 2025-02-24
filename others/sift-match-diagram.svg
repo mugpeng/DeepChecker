@@ -1,0 +1,40 @@
+<svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="800" height="400" fill="#ffffff"/>
+    
+    <!-- Image 1 -->
+    <rect x="50" y="50" width="300" height="300" fill="#f5f5f5" stroke="#000000" stroke-width="2"/>
+    <circle cx="150" cy="150" r="5" fill="#ff0000"/>
+    <circle cx="200" cy="200" r="5" fill="#ff0000"/>
+    <circle cx="250" cy="150" r="5" fill="#ff0000"/>
+    
+    <!-- Image 2 -->
+    <rect x="450" y="50" width="300" height="300" fill="#f5f5f5" stroke="#000000" stroke-width="2"/>
+    <circle cx="550" cy="160" r="5" fill="#ff0000"/>
+    <circle cx="600" cy="210" r="5" fill="#ff0000"/>
+    <circle cx="650" cy="160" r="5" fill="#ff0000"/>
+    
+    <!-- Matching Lines -->
+    <line x1="150" y1="150" x2="550" y2="160" stroke="#2196f3" stroke-width="2" stroke-dasharray="5,5"/>
+    <line x1="200" y1="200" x2="600" y2="210" stroke="#2196f3" stroke-width="2" stroke-dasharray="5,5"/>
+    <line x1="250" y1="150" x2="650" y2="160" stroke="#2196f3" stroke-width="2" stroke-dasharray="5,5"/>
+    
+    <!-- Labels -->
+    <text x="200" y="30" font-family="Arial" font-size="16" text-anchor="middle">Image 1</text>
+    <text x="600" y="30" font-family="Arial" font-size="16" text-anchor="middle">Image 2</text>
+    
+    <!-- Feature Point Labels -->
+    <text x="150" y="130" font-family="Arial" font-size="12" text-anchor="middle">Keypoint</text>
+    <path d="M150 135 L150 145" stroke="#000000" stroke-width="1"/>
+    
+    <!-- Gradient Arrow -->
+    <circle cx="200" cy="200" r="15" fill="none" stroke="#666666" stroke-width="1"/>
+    <path d="M200 200 L210 190" stroke="#666666" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <text x="220" y="190" font-family="Arial" font-size="12">Gradient</text>
+    
+    <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#666666"/>
+        </marker>
+    </defs>
+</svg>

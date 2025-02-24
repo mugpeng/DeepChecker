@@ -1,0 +1,24 @@
+#analysisResults {
+    margin-top: 20px;
+    padding: 15px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+}
+
+.duplicate-group, .similar-pair {
+    margin: 10px 0;
+    padding: 10px;
+    background-color: #fff;
+    border: 1px solid #eee;
+    border-radius: 3px;
+}
+
+.duplicate-group ul {
+    margin: 5px 0;
+    padding-left: 20px;
+}
+
+.similar-pair p {
+    margin: 5px 0;
+} 

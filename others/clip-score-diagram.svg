@@ -1,0 +1,33 @@
+<svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+    <!-- Background -->
+    <rect width="800" height="400" fill="#ffffff"/>
+    
+    <!-- Image Encoder Box -->
+    <rect x="50" y="100" width="160" height="100" fill="#e3f2fd" stroke="#1976d2" stroke-width="2"/>
+    <text x="130" y="150" text-anchor="middle" font-family="Arial" font-size="16">Image Encoder</text>
+    
+    <!-- Text Encoder Box -->
+    <rect x="50" y="250" width="160" height="100" fill="#e8f5e9" stroke="#388e3c" stroke-width="2"/>
+    <text x="130" y="300" text-anchor="middle" font-family="Arial" font-size="16">Text Encoder</text>
+    
+    <!-- Feature Space -->
+    <rect x="350" y="150" width="200" height="150" fill="#fff3e0" stroke="#f57c00" stroke-width="2"/>
+    <text x="450" y="200" text-anchor="middle" font-family="Arial" font-size="16">Joint Embedding Space</text>
+    <text x="450" y="230" text-anchor="middle" font-family="Arial" font-size="14">Cosine Similarity</text>
+    <text x="450" y="260" text-anchor="middle" font-family="Arial" font-size="14">Score</text>
+    
+    <!-- Arrows -->
+    <path d="M210 150 L350 225" fill="none" stroke="#000" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <path d="M210 300 L350 225" fill="none" stroke="#000" stroke-width="2" marker-end="url(#arrowhead)"/>
+    
+    <!-- Input Labels -->
+    <text x="20" y="90" font-family="Arial" font-size="14">Input Image</text>
+    <text x="20" y="240" font-family="Arial" font-size="14">Text Description</text>
+    
+    <!-- Arrowhead marker -->
+    <defs>
+        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+            <polygon points="0 0, 10 3.5, 0 7" fill="#000"/>
+        </marker>
+    </defs>
+</svg>
