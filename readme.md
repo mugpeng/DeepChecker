@@ -4,7 +4,7 @@ A fast and accurate image duplication detection tool that combines CLIP (Contras
 
 
 
-<img src="others/logo/logo.png" alt="logo" style="zoom:33%;" />
+<img src="images/logo/logo.png" alt="logo" style="zoom:33%;" />
 
 
 
