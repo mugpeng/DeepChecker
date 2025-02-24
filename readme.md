@@ -2,15 +2,12 @@
 
 A fast and accurate image duplication detection tool that combines CLIP (Contrastive Language-Image Pre-Training) and SIFT (Scale-Invariant Feature Transform) algorithms to identify duplicate and similar images.
 
-<<<<<<< Updated upstream
-=======
 
 
-<img src="http://cos01.mugpeng.top/img/logo.png" style="zoom: 10%;" />
+<img src="images/logo.png" alt="logo" style="zoom:33%;" />
 
 
 
->>>>>>> Stashed changes
 ## Features
 
 - **Dual-Algorithm Analysis**: Combines CLIP for semantic similarity and SIFT for local feature matching
@@ -18,11 +15,11 @@ A fast and accurate image duplication detection tool that combines CLIP (Contras
 - **Real-time Progress**: Shows analysis progress during SIFT verification
 - **Interactive UI**: Drag-and-drop interface with file preview
 - **Detailed Results**:
-  - Top 5 similar pairs with similarity scores
+  - Top 10 similar pairs with similarity scores
   - Duplicate image groups
   - Local feature matches count
   - CLIP similarity scores
-- **Export Functionality**: Download top 20 similar pairs as CSV
+- **Export Functionality**: Download top 50 similar pairs as CSV
 
 
 
@@ -92,15 +89,16 @@ uvicorn app:app --host 0.0.0.0 --port 8890 --log-level debug
 
 # front
 npm run dev 
-npm run dev -- --port 8080
-npm run dev -- --port 8080 --host 0.0.0.0
+npm run dev -- --port 8888
+npm run dev -- --port 8888 --host 0.0.0.0
 ```
 
 
 
 check open port:
+
 ```
-netstat -tuln | grep 8080
+netstat -tuln | grep 8888
 sudo ss -tulpn
 ```
 
@@ -112,11 +110,48 @@ sudo netstat -tuln | grep 8890
 
 
 
+## Use reverse proxy
+
+```
+I can only use port 8888 which is allowed by the sucure group rule, so help me use nginx to use Nginx as a reverse proxy use port 3000 for backend and 3001 for frontend.
+
+I would like to deploy this project for frontend on port 8888, I run `npm run dev -- --port 8888 --host 0.0.0.0`, and `python app.py` on my server to run this project. And the server can be access it by `10.112.31.24:8888`. I can only use port 8888 which is allowed by the sucure group rule, so help me use nginx to use Nginx as a reverse proxy use port 3000 and 3001
+```
+
+
+
+
+
+nginx:
+
+```
+ sudo cp nginx.conf /etc/nginx/nginx.conf
+```
+
+
+
+```
+npm run dev -- --port 3001 --host 0.0.0.0
+python app.py
+
+sudo systemctl restart nginx
+```
+
+
+
+```
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S") && nohup python app.py > logs/backend_${TIMESTAMP}.log 2>&1 & echo $! > logs/backend_${TIMESTAMP}.pid
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S") && nohup npm run dev -- --port 3001 --host 0.0.0.0 > logs/frontend_${TIMESTAMP}.log 2>&1 & echo $! > logs/frontend_${TIMESTAMP}.pid
+```
+
+
+
 
 
 # Deploy local by conda 
 
 download conda:
+
 ```
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
 bash Miniconda3-latest-Linux-x86_64.sh 
@@ -175,4 +210,4 @@ For a multilingual version of the CLIP model for 50+ languages have a look at: [
 Developed by UM_DengLab
 
 - Contact: Peng, yc47680@um.edu.mo
-- GitHub: https://github.com/mugpeng/DeepChecker
+- GitHub: https://github.com/mugpeng
