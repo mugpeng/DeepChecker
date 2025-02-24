@@ -26,13 +26,33 @@ interface ResultsProps {
   onClear: () => void;
 }
 
-// Helper function to clean up filenames
-const cleanFileName = (filename: string): string => {
-  // Remove file extension
-  let name = filename.split('.')[0];
-  // Remove PDF page suffix if present
-  name = name.replace(/_page_\d+$/, '');
-  return name;
+// Helper function to clean file names
+const cleanFileName = (fileName: string) => {
+  // First handle PDF page suffixes if present
+  let name = fileName.replace(/_page_\d+\.jpg$/, '.pdf'); // Convert PDF page back to PDF
+  return name; // Keep the extension for all files
+};
+
+// Helper function to remove duplicates and sort pairs
+const getUniqueSortedPairs = (pairs: Array<{
+  image1: string;
+  image2: string;
+  clipScore: number;
+  localMatches: number;
+}>) => {
+  // Create a Set to track unique pairs
+  const seen = new Set<string>();
+  const uniquePairs = pairs.filter(pair => {
+    // Create a unique key for each pair (sorted to handle both orders)
+    const key = [cleanFileName(pair.image1), cleanFileName(pair.image2)]
+      .sort()
+      .join('|');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  return uniquePairs;
 };
 
 // Helper function to download CSV
@@ -65,14 +85,15 @@ const downloadCSV = (results: AnalysisResult) => {
     return b.clipScore - a.clipScore;
   });
 
-  // Take top 50 pairs
-  const top50Pairs = allPairs.slice(0, 50);
+  // Remove duplicates and take top 50 pairs
+  const uniquePairs = getUniqueSortedPairs(allPairs);
+  const top50Pairs = uniquePairs.slice(0, 50);
 
-  // Create CSV content
+  // Create CSV content with cleaned file names
   const csvContent = [
     'Pair Number,Image 1,Image 2,CLIP Score,Local Matches',
     ...top50Pairs.map((pair, index) => 
-      `${index + 1},${pair.image1},${pair.image2},${(pair.clipScore * 100).toFixed(1)}%,${pair.localMatches}`
+      `${index + 1},${cleanFileName(pair.image1)},${cleanFileName(pair.image2)},${(pair.clipScore * 100).toFixed(1)}%,${pair.localMatches}`
     )
   ].join('\n');
 

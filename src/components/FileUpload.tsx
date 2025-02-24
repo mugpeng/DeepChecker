@@ -26,6 +26,11 @@ interface FileUploadProps {
   onModelSelect: (model: string) => void;
 }
 
+// Base URL for API endpoints
+const API_BASE_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3000/api'
+  : 'http://10.112.31.24:8080/api';
+
 export function FileUpload({
   state,
   onDragOver,
@@ -41,7 +46,7 @@ export function FileUpload({
         console.error('No session ID available for cleanup');
         return;
       }
-      const response = await fetch(`http://10.112.31.24:8080/api/cleanup/${state.sessionId}`, {
+      const response = await fetch(`${API_BASE_URL}/cleanup/${state.sessionId}`, {
         method: 'POST'
       });
       if (!response.ok) {
@@ -235,6 +240,7 @@ export function FileUpload({
             </button>
             <div className="mt-2 text-sm text-gray-500">
               <p>Click to clean up your current uploaded files.</p>
+              <p>When you upload files, the previous files will be deleted.</p>
               <p>Files are automatically cleaned after 2 hours of inactivity.</p>
             </div>
           </div>

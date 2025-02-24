@@ -45,6 +45,11 @@ const isValidFileType = (file: File): boolean => {
   return allowedExtensions.includes(extension);
 };
 
+// Base URL for API endpoints
+const API_BASE_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3000/api'
+  : 'http://10.112.31.24:8080/api';
+
 export function useFileUpload(onAnalysisComplete?: (results: AnalysisResult) => void) {
   const [state, setState] = useState<FileUploadState>({
     file: null,
@@ -70,13 +75,14 @@ export function useFileUpload(onAnalysisComplete?: (results: AnalysisResult) => 
     if (validFiles.length > 0) {
       // Upload files immediately
       const uploadFiles = async () => {
+        // If there's a previous session, it will be automatically cleaned up by the server
         const formData = new FormData();
         validFiles.forEach(file => {
           formData.append('files', file);
         });
 
         try {
-          const response = await fetch('http://10.112.31.24:8080/api/upload', {
+          const response = await fetch(`${API_BASE_URL}/upload`, {
             method: 'POST',
             body: formData,
           });
@@ -123,13 +129,14 @@ export function useFileUpload(onAnalysisComplete?: (results: AnalysisResult) => 
     if (validFiles.length > 0) {
       // Upload files immediately
       const uploadFiles = async () => {
+        // If there's a previous session, it will be automatically cleaned up by the server
         const formData = new FormData();
         validFiles.forEach(file => {
           formData.append('files', file);
         });
 
         try {
-          const response = await fetch('http://10.112.31.24:8080/api/upload', {
+          const response = await fetch(`${API_BASE_URL}/upload`, {
             method: 'POST',
             body: formData,
           });
@@ -183,7 +190,7 @@ export function useFileUpload(onAnalysisComplete?: (results: AnalysisResult) => 
 
     try {
       // Start the analysis
-      const response = await fetch(`http://10.112.31.24:8080/api/analyze/${state.sessionId}`, {
+      const response = await fetch(`${API_BASE_URL}/analyze/${state.sessionId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -208,7 +215,7 @@ export function useFileUpload(onAnalysisComplete?: (results: AnalysisResult) => 
       }
 
       // Start listening for progress updates
-      const eventSource = new EventSource('http://10.112.31.24:8080/api/progress');
+      const eventSource = new EventSource(`${API_BASE_URL}/progress`);
 
       eventSource.onmessage = (event: MessageEvent) => {
         const data = JSON.parse(event.data);
@@ -274,7 +281,7 @@ export function useFileUpload(onAnalysisComplete?: (results: AnalysisResult) => 
     try {
       if (state.sessionId) {
         // Clean up session-specific files
-        await fetch(`http://10.112.31.24:8080/api/cleanup/${state.sessionId}`, {
+        await fetch(`${API_BASE_URL}/cleanup/${state.sessionId}`, {
           method: 'POST'
         });
       }

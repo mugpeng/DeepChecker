@@ -146,6 +146,24 @@ TIMESTAMP=$(date +"%Y%m%d_%H%M%S") && nohup npm run dev -- --port 3001 --host 0.
 
 
 
+## Difference between local and server
+
+`src/components/FileUpload.tsx`  and `hooks/useFileUpload.ts`
+
+but use a tricky, use `API_BASE_URL` to vary based on domain status:
+
+```
+const API_BASE_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3000/api'
+  : 'http://10.112.31.24:8080/api';
+
+...
+const response = await fetch(`${API_BASE_URL}/cleanup/${state.sessionId}`, {
+...
+```
+
+but for real domain name such as "http://fscpo.fhs.um.edu.mo:8080/"?
+
 
 
 # Deploy local by conda 
@@ -176,7 +194,7 @@ mamba install numpy pillow opencv pytorch torchvision openai-clip glob2 pdf2imag
 run script:
 
 ```
-
+python clip_sift_search.py <folder_path>
 ```
 
 
@@ -203,7 +221,7 @@ For a multilingual version of the CLIP model for 50+ languages have a look at: [
 
 - Maximum recommended batch size: Depends on available memory
 - PDF processing may take longer due to conversion
-- CLIP analysis requires GPU for optimal performance
+- GPU acceleration
 
 ## Credits
 

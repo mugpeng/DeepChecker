@@ -22,7 +22,7 @@ app = FastAPI()
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://10.112.31.24:8080"],  # Updated Frontend URL
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:8080", "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:8080"],  # Allow local development
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -34,6 +34,9 @@ CLEANUP_THRESHOLD_HOURS = 2  # Cleanup folders older than 2 hours
 
 # Global progress queue
 progress_queue = queue.Queue()
+
+# Dictionary to track user sessions (IP address -> list of session IDs)
+user_sessions = {}
 
 # Ensure base upload directory exists
 os.makedirs(UPLOAD_BASE_DIR, exist_ok=True)
@@ -96,8 +99,28 @@ def update_session_access_time(session_id: str):
     except Exception as e:
         print(f"Error updating session access time: {str(e)}")
 
+# Function to get user IP address from request
+def get_client_ip(request: Request) -> str:
+    """Get client IP address from request"""
+    if "x-forwarded-for" in request.headers:
+        return request.headers["x-forwarded-for"].split(",")[0]
+    return request.client.host
+
+def cleanup_user_previous_sessions(user_ip: str, current_session_id: str):
+    """Clean up previous sessions for a user"""
+    if user_ip in user_sessions:
+        for session_id in user_sessions[user_ip]:
+            if session_id != current_session_id:  # Don't delete the current session
+                session_dir = os.path.join(UPLOAD_BASE_DIR, session_id)
+                if os.path.exists(session_dir):
+                    print(f"Cleaning up previous session {session_id} for user {user_ip}")
+                    shutil.rmtree(session_dir)
+        # Update user sessions to only include the current session
+        user_sessions[user_ip] = [current_session_id]
+
 @app.post("/api/upload")
 async def upload_files(
+    request: Request,
     files: List[UploadFile] = File(...),
     model_name: str = "ViT-B/32"  # Default model if not specified
 ):
@@ -106,8 +129,14 @@ async def upload_files(
         session_id = str(uuid.uuid4())
         user_upload_dir = get_user_upload_dir(session_id)
         
-        # Clean up old upload directories
-        cleanup_old_uploads()
+        # Get user IP and clean up their previous sessions
+        user_ip = get_client_ip(request)
+        cleanup_user_previous_sessions(user_ip, session_id)
+        
+        # Add new session to user_sessions
+        if user_ip not in user_sessions:
+            user_sessions[user_ip] = []
+        user_sessions[user_ip].append(session_id)
         
         # Save uploaded files preserving directory structure
         saved_files = []
@@ -122,7 +151,7 @@ async def upload_files(
                 shutil.copyfileobj(file.file, buffer)
             saved_files.append(file_path)
             
-        print(f"Saved files in session {session_id}: {saved_files}")  # Debug log
+        print(f"Saved files in session {session_id} for user {user_ip}: {saved_files}")  # Debug log
         
         if saved_files:
             return {"message": "Files uploaded successfully", "session_id": session_id}
@@ -154,7 +183,7 @@ async def analyze_session(
         if not os.path.exists(user_upload_dir):
             raise HTTPException(
                 status_code=404,
-                detail="Session not found"
+                detail="Session not found, or you may upload files in another tab."
             )
 
         # Count number of files in directory
