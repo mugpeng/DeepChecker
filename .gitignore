@@ -6,7 +6,7 @@
 # dir
 /archive
 /uploads
-/images
+# /images
 /__pycache__
 /node_modules
 /logs
