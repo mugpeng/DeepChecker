@@ -44,8 +44,8 @@ os.makedirs(UPLOAD_BASE_DIR, exist_ok=True)
 class LargeUploadMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         if request.url.path == "/api/upload":
-            # Increase the max upload size to 100MB
-            request._max_body_size = 100 * 1024 * 1024  # 100MB in bytes
+            # Increase the max upload size to 500MB
+            request._max_body_size = 500 * 1024 * 1024  # 500MB in bytes
         return await call_next(request)
 
 app.add_middleware(LargeUploadMiddleware)

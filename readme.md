@@ -120,8 +120,6 @@ I would like to deploy this project for frontend on port 8888, I run `npm run de
 
 
 
-
-
 nginx:
 
 ```
@@ -131,15 +129,17 @@ nginx:
 
 
 ```
-npm run dev -- --port 3001 --host 0.0.0.0
-python app.py
-
+sudo systemctl stop nginx
+sudo systemctl status nginx
 sudo systemctl restart nginx
 ```
 
 
 
 ```
+npm run dev -- --port 3001 --host 0.0.0.0
+python app.py
+
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S") && nohup python app.py > logs/backend_${TIMESTAMP}.log 2>&1 & echo $! > logs/backend_${TIMESTAMP}.pid
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S") && nohup npm run dev -- --port 3001 --host 0.0.0.0 > logs/frontend_${TIMESTAMP}.log 2>&1 & echo $! > logs/frontend_${TIMESTAMP}.pid
 ```
@@ -163,6 +163,31 @@ const response = await fetch(`${API_BASE_URL}/cleanup/${state.sessionId}`, {
 ```
 
 but for real domain name such as "http://fscpo.fhs.um.edu.mo:8080/"?
+
+
+
+also the `node_modules` are different.
+
+```
+/home/data/yzpeng/2-Project/DuplicateCheckerWeb2/software/node_modules/rollup/dist/native.js:59
+                throw new Error(
+                      ^
+
+Error: Cannot find module @rollup/rollup-linux-x64-gnu. npm has a bug related to optional dependencies (https://github.com/npm/cli/issues/4828). Please try `npm i` again after removing both package-lock.json and node_modules directory.
+    at requireWithFriendlyError (/home/data/yzpeng/2-Project/DuplicateCheckerWeb2/software/node_modules/rollup/dist/native.js:59:9)
+    at Object.<anonymous> (/home/data/yzpeng/2-Project/DuplicateCheckerWeb2/software/node_modules/rollup/dist/native.js:68:76)
+    at Module._compile (node:internal/modules/cjs/loader:1565:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1708:10)
+    at Module.load (node:internal/modules/cjs/loader:1318:32)
+    at Module._load (node:internal/modules/cjs/loader:1128:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:219:24)
+    at cjsLoader (node:internal/modules/esm/translators:263:5)
+    at ModuleWrap.<anonymous> (node:internal/modules/esm/translators:196:7) {
+  [cause]: Error: Cannot find module '@rollup/rollup-linux-x64-gnu'
+```
+
+
 
 
 
