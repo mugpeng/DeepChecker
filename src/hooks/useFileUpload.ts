@@ -46,9 +46,13 @@ const isValidFileType = (file: File): boolean => {
 };
 
 // Base URL for API endpoints
-const API_BASE_URL = window.location.hostname === 'localhost' 
-  ? 'http://localhost:3000/api'
-  : 'http://10.112.31.24:8080/api';
+const API_BASE_URL = window.location.hostname === '10.112.31.24' 
+  ? 'http://10.112.31.24:8080/api'
+  : 'http://localhost:3000/api';
+
+// const API_BASE_URL = window.location.port === '3001' 
+//   ? 'http://localhost:3000/api'
+//   : 'http://10.112.31.24:8080/api';
 
 export function useFileUpload(onAnalysisComplete?: (results: AnalysisResult) => void) {
   const [state, setState] = useState<FileUploadState>({
