@@ -30,7 +30,12 @@ interface ResultsProps {
 const cleanFileName = (fileName: string) => {
   // First handle PDF page suffixes if present
   let name = fileName.replace(/_page_\d+\.jpg$/, '.pdf'); // Convert PDF page back to PDF
-  return name; // Keep the extension for all files
+  // Remove duplicated extensions
+  const parts = name.split('.');
+  if (parts.length > 2 && parts[parts.length - 1] === parts[parts.length - 2]) {
+    parts.pop(); // Remove the last extension if it's a duplicate
+  }
+  return parts.join('.'); // Rejoin the parts to form the cleaned file name
 };
 
 // Helper function to remove duplicates and sort pairs
