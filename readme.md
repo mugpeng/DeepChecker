@@ -141,10 +141,33 @@ npm run dev -- --port 3001 --host 0.0.0.0
 python app.py
 
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S") && nohup python app.py > logs/backend_${TIMESTAMP}.log 2>&1 & echo $! > logs/backend_${TIMESTAMP}.pid
-TIMESTAMP=$(date +"%Y%m%d_%H%M%S") && nohup npm run dev > logs/frontend_${TIMESTAMP}.log 2>&1 & echo $! > logs/frontend_${TIMESTAMP}.pid
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S") && nohup npm run start > logs/frontend_${TIMESTAMP}.log 2>&1 & echo $! > logs/frontend_${TIMESTAMP}.pid
+# TIMESTAMP=$(date +"%Y%m%d_%H%M%S") && nohup npm run dev > logs/frontend_${TIMESTAMP}.log 2>&1 & echo $! > logs/frontend_${TIMESTAMP}.pid
 
 # TIMESTAMP=$(date +"%Y%m%d_%H%M%S") && nohup npm run dev -- --port 3001 --host 0.0.0.0 > logs/frontend_${TIMESTAMP}.log 2>&1 & echo $! > logs/frontend_${TIMESTAMP}.pid
 ```
+
+
+
+## use forever check status
+
+```
+npm install -g forever
+# mkdir -p ~/.forever/deepcheck
+
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S") && npm run start & echo $! > logs/frontend_${TIMESTAMP}.pid
+
+# check forever log in forever list
+forever list
+```
+
+
+
+```
+"start": "forever start -c 'node signalHandler.js' .",
+```
+
+
 
 
 
