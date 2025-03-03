@@ -314,6 +314,49 @@ For a multilingual version of the CLIP model for 50+ languages have a look at: [
 
 
 
+# TODO
+
+## Major
+
+- [x] clean uploaded dir everytime user overwrite upload new files or leave the session. 
+- [x] debug nginx deployed bugs(try to fix it through forever(help restart the app))
+- [x] Analysis wrongly displayed to diff users
+- [ ] local deploy version
+- [ ] split the images from a draft or paper
+- [ ] Use line to connect the duplicated spots 
+
+
+
+## Minor
+
+- [x] fix bugs about output and names
+- [x] Unify structure for both local and server 
+- [x] Logic to choose server or local
+
+
+
+# Milestone
+
+## 0303
+
+The stable version v0.1 is online now in UM network [DeepChecker](http://10.112.31.24:8080/)
+
+DeepChecker is online and fix two fatal bugs:
+
+1) with `forever` system which allow app restart if it abnormally shutdown, 
+
+2) with session-based queue system to handle concurrent users properly.
+
+and it seems ok after one day test. OVO
+
+if you have any suggestions or issues feedback can leave here: https://github.com/mugpeng/DeepChecker/issues
+
+Here are some other free tools to help check duplication: https://www.rjmart.cn/TDC/#/TAdd , https://www.figcheck.com/imagecheck 
+
+Thank you :)
+
+
+
 # Others
 
 ## Limitations
