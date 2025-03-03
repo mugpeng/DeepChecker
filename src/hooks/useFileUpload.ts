@@ -207,10 +207,9 @@ export function useFileUpload(onAnalysisComplete?: (results: AnalysisResult) => 
       const data = await response.json();
       
       if (!response.ok) {
-        console.error('Analysis error:', data); // Add logging for debugging
+        console.error('Analysis error:', data);
         let errorMessage;
         if (Array.isArray(data)) {
-          // Handle validation errors from FastAPI
           errorMessage = data.map(err => err.msg).join(', ');
         } else {
           errorMessage = data.detail || data.error || 'Analysis failed';
@@ -218,57 +217,132 @@ export function useFileUpload(onAnalysisComplete?: (results: AnalysisResult) => 
         throw new Error(typeof errorMessage === 'object' ? JSON.stringify(errorMessage) : errorMessage);
       }
 
-      // Start listening for progress updates
-      const eventSource = new EventSource(`${API_BASE_URL}/progress`);
+      // Start listening for progress updates using session-specific endpoint
+      const eventSource = new EventSource(`${API_BASE_URL}/progress/${state.sessionId}`);
+      let hasReceivedData = false;
 
       eventSource.onmessage = (event: MessageEvent) => {
-        const data = JSON.parse(event.data);
-        if (data.progress) {
+        hasReceivedData = true;
+        try {
+          const data = JSON.parse(event.data);
+          if (data.progress !== undefined) {
+            setState(prev => ({
+              ...prev,
+              progress: data.progress
+            }));
+          }
+        } catch (error) {
+          console.error('Error parsing message data:', error);
+        }
+      };
+
+      // Handle different event types
+      eventSource.addEventListener('progress', (event: MessageEvent) => {
+        hasReceivedData = true;
+        try {
+          const data = JSON.parse(event.data);
           setState(prev => ({
             ...prev,
             progress: data.progress
           }));
+        } catch (error) {
+          console.error('Error parsing progress data:', error);
         }
-      };
-
-      eventSource.addEventListener('progress', (event: MessageEvent) => {
-        const data = JSON.parse(event.data);
-        setState(prev => ({
-          ...prev,
-          progress: data.progress
-        }));
       });
 
       eventSource.addEventListener('complete', (event: MessageEvent) => {
-        const results = JSON.parse(event.data);
-        setState(prev => ({
-          ...prev,
-          status: 'success',
-          progress: 100,
-        }));
-        if (onAnalysisComplete) {
-          onAnalysisComplete(results);
+        hasReceivedData = true;
+        try {
+          const data = JSON.parse(event.data);
+          setState(prev => ({
+            ...prev,
+            status: 'success',
+            progress: 100,
+          }));
+          if (onAnalysisComplete) {
+            onAnalysisComplete(data);
+          }
+        } catch (error) {
+          console.error('Error parsing complete data:', error);
+          setState(prev => ({
+            ...prev,
+            status: 'error',
+            error: 'Error processing analysis results'
+          }));
+        } finally {
+          eventSource.close();
         }
-        eventSource.close();
       });
 
       eventSource.addEventListener('error', (event: MessageEvent) => {
-        const data = JSON.parse(event.data);
-        setState(prev => ({
-          ...prev,
-          status: 'error',
-          error: data.error || 'An error occurred during analysis',
-        }));
-        eventSource.close();
+        if (!hasReceivedData) {
+          // If we never received any data, this might be a connection issue
+          setState(prev => ({
+            ...prev,
+            status: 'error',
+            error: 'Failed to connect to server'
+          }));
+          eventSource.close();
+          return;
+        }
+
+        try {
+          const data = event.data ? JSON.parse(event.data) : { error: 'Connection error' };
+          setState(prev => ({
+            ...prev,
+            status: 'error',
+            error: data.error || 'An error occurred during analysis',
+          }));
+        } catch (error) {
+          console.error('Error parsing error data:', error);
+          setState(prev => ({
+            ...prev,
+            status: 'error',
+            error: 'An error occurred during analysis'
+          }));
+        } finally {
+          eventSource.close();
+        }
       });
 
-      eventSource.onerror = () => {
-        setState(prev => ({
-          ...prev,
-          status: 'error',
-          error: 'Connection to server lost',
-        }));
-        eventSource.close();
+      // Handle connection errors
+      eventSource.onerror = (error) => {
+        if (!hasReceivedData && eventSource.readyState === EventSource.CLOSED) {
+          setState(prev => ({
+            ...prev,
+            status: 'error',
+            error: 'Failed to establish connection with server'
+          }));
+          eventSource.close();
+        } else if (eventSource.readyState === EventSource.CLOSED) {
+          // Only show connection lost if we previously had a connection
+          setState(prev => ({
+            ...prev,
+            status: 'error',
+            error: 'Connection to server lost'
+          }));
+          eventSource.close();
+        }
+      };
+
+      // Set up connection timeout
+      const connectionTimeout = setTimeout(() => {
+        if (!hasReceivedData) {
+          setState(prev => ({
+            ...prev,
+            status: 'error',
+            error: 'Connection timeout - no response from server'
+          }));
+          eventSource.close();
+        }
+      }, 10000000000); // 10 second timeout
+
+      // Clean up function
+      return () => {
+        clearTimeout(connectionTimeout);
+        if (eventSource) {
+          eventSource.close();
+        }
       };
 
     } catch (error) {
@@ -279,7 +353,7 @@ export function useFileUpload(onAnalysisComplete?: (results: AnalysisResult) => 
         error: error instanceof Error ? error.message : 'An error occurred during analysis'
       }));
     }
-  }, [state.files, state.selectedModel, onAnalysisComplete]);
+  }, [state.files, state.sessionId, state.selectedModel, onAnalysisComplete]);
 
   const handleClear = useCallback(async () => {
     try {

@@ -2,7 +2,7 @@ import uuid
 from fastapi import FastAPI, UploadFile, File, Body, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import os
-from typing import List
+from typing import List, Dict
 import tempfile
 import shutil
 from clip_sift_search import analyze_images
@@ -16,6 +16,8 @@ from datetime import datetime, timedelta
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from pydantic import BaseModel
+from collections import defaultdict
+from threading import Lock
 
 app = FastAPI()
 
@@ -32,8 +34,9 @@ app.add_middleware(
 UPLOAD_BASE_DIR = 'uploads'
 CLEANUP_THRESHOLD_HOURS = 2  # Cleanup folders older than 2 hours
 
-# Global progress queue
-progress_queue = queue.Queue()
+# Session-based progress queues with thread-safe access
+progress_queues: Dict[str, queue.Queue] = {}
+queue_lock = Lock()
 
 # Dictionary to track user sessions (IP address -> list of session IDs)
 user_sessions = {}
@@ -60,7 +63,7 @@ def get_user_upload_dir(session_id: str) -> str:
     return user_dir
 
 def cleanup_old_uploads():
-    """Clean up upload directories older than threshold"""
+    """Clean up upload directories and queues older than threshold"""
     try:
         current_time = datetime.now()
         for session_id in os.listdir(UPLOAD_BASE_DIR):
@@ -78,16 +81,36 @@ def cleanup_old_uploads():
                 if current_time - last_access > timedelta(hours=CLEANUP_THRESHOLD_HOURS):
                     print(f"Cleaning up old session: {session_id}")
                     shutil.rmtree(session_dir)
+                    # Clean up associated progress queue
+                    with queue_lock:
+                        if session_id in progress_queues:
+                            del progress_queues[session_id]
     except Exception as e:
         print(f"Error during old uploads cleanup: {str(e)}")
 
-def analyze_files_with_progress(folder_path, model_name):
-    """Run analysis in a separate thread and put progress updates in the queue"""
+def analyze_files_with_progress(folder_path, model_name, session_id):
+    """Run analysis in a separate thread and put progress updates in the session queue"""
     try:
-        results = analyze_images(folder_path, progress_callback=lambda p: progress_queue.put({"progress": p}), model_name=model_name)
-        progress_queue.put({"done": True, "results": results})
+        # Get the queue for this session
+        with queue_lock:
+            if session_id not in progress_queues:
+                progress_queues[session_id] = queue.Queue()
+            session_queue = progress_queues[session_id]
+
+        # Run analysis with progress updates to session queue
+        results = analyze_images(
+            folder_path,
+            progress_callback=lambda p: session_queue.put({"progress": p}),
+            model_name=model_name
+        )
+        session_queue.put({"done": True, "results": results})
     except Exception as e:
-        progress_queue.put({"error": str(e)})
+        session_queue.put({"error": str(e)})
+    finally:
+        # Clean up the queue after analysis is complete
+        with queue_lock:
+            if session_id in progress_queues:
+                del progress_queues[session_id]
 
 def update_session_access_time(session_id: str):
     """Update the last access time for a session"""
@@ -197,14 +220,20 @@ async def analyze_session(
         # Update access time
         update_session_access_time(session_id)
 
-        # Clear the queue
-        while not progress_queue.empty():
-            progress_queue.get()
+        # Initialize or clear the session queue
+        with queue_lock:
+            if session_id in progress_queues:
+                # Clear existing queue
+                while not progress_queues[session_id].empty():
+                    progress_queues[session_id].get()
+            else:
+                # Create new queue
+                progress_queues[session_id] = queue.Queue()
         
         # Start analysis in a separate thread
         thread = threading.Thread(
             target=analyze_files_with_progress,
-            args=(user_upload_dir, request.model_name)
+            args=(user_upload_dir, request.model_name, session_id)
         )
         thread.start()
         return {"message": "Analysis started"}
@@ -218,28 +247,40 @@ async def analyze_session(
 
 @app.post("/api/cleanup/{session_id}")
 async def cleanup_session(session_id: str):
-    """Clean up a specific session's uploaded files"""
+    """Clean up a specific session's uploaded files and progress queue"""
     try:
+        # Clean up session directory
         session_dir = os.path.join(UPLOAD_BASE_DIR, session_id)
         if os.path.exists(session_dir):
             print(f"Manually cleaning up session: {session_id}")
             shutil.rmtree(session_dir)
+            
+        # Clean up progress queue
+        with queue_lock:
+            if session_id in progress_queues:
+                del progress_queues[session_id]
+                
         return {"message": "Session cleanup successful"}
     except Exception as e:
         return {"error": f"Session cleanup failed: {str(e)}"}
 
 @app.post("/api/cleanup")
 async def cleanup_files():
-    """Clean up all uploaded files"""
+    """Clean up all uploaded files and progress queues"""
     try:
+        # Clean up all session directories
         if os.path.exists(UPLOAD_BASE_DIR):
             print("Manual cleanup of all sessions requested")
-            # Instead of removing the base directory, clean up its contents
             for item in os.listdir(UPLOAD_BASE_DIR):
                 item_path = os.path.join(UPLOAD_BASE_DIR, item)
                 if os.path.isdir(item_path):
                     shutil.rmtree(item_path)
-            print("All sessions cleaned up successfully")
+                    
+        # Clean up all progress queues
+        with queue_lock:
+            progress_queues.clear()
+            
+        print("All sessions cleaned up successfully")
         return {"message": "Cleanup successful"}
     except Exception as e:
         return {"error": f"Cleanup failed: {str(e)}"}
@@ -259,32 +300,81 @@ async def startup_event():
     # Start the periodic cleanup task
     asyncio.create_task(periodic_cleanup())
 
-@app.get("/api/progress")
-async def progress_stream():
-    async def event_generator():
-        while True:
-            if not progress_queue.empty():
-                data = progress_queue.get()
-                if "error" in data:
-                    yield {
-                        "event": "error",
-                        "data": json.dumps({"error": data["error"]})
-                    }
-                    break
-                elif "done" in data:
-                    yield {
-                        "event": "complete",
-                        "data": json.dumps(data["results"])
-                    }
-                    break
-                else:
-                    yield {
-                        "event": "progress",
-                        "data": json.dumps(data)
-                    }
-            await asyncio.sleep(0.1)  # Small delay to prevent CPU overload
+@app.get("/api/progress/{session_id}")
+async def progress_stream(session_id: str):
+    """Stream progress updates for a specific session"""
+    try:
+        # Ensure the session exists
+        user_upload_dir = os.path.join(UPLOAD_BASE_DIR, session_id)
+        if not os.path.exists(user_upload_dir):
+            raise HTTPException(
+                status_code=404,
+                detail="Session not found"
+            )
 
-    return EventSourceResponse(event_generator())
+        # Get or create queue for this session
+        with queue_lock:
+            if session_id not in progress_queues:
+                progress_queues[session_id] = queue.Queue()
+            session_queue = progress_queues[session_id]
+
+        async def event_generator():
+            connection_active = True
+            try:
+                while connection_active:
+                    try:
+                        # Non-blocking queue get with timeout
+                        data = session_queue.get(timeout=1.0)
+                        
+                        if "error" in data:
+                            yield {
+                                "event": "error",
+                                "data": json.dumps({"error": data["error"]})
+                            }
+                            connection_active = False
+                            
+                        elif "done" in data:
+                            # Send the complete event before breaking
+                            yield {
+                                "event": "complete",
+                                "data": json.dumps(data["results"])
+                            }
+                            connection_active = False
+                            
+                        else:
+                            yield {
+                                "event": "progress",
+                                "data": json.dumps({"progress": data["progress"]})
+                            }
+                    except queue.Empty:
+                        # Check if session still exists
+                        with queue_lock:
+                            if session_id not in progress_queues:
+                                connection_active = False
+                                break
+                        # Send keepalive every second when no updates
+                        yield {
+                            "event": "keepalive",
+                            "data": ""
+                        }
+                        await asyncio.sleep(1.0)
+            except Exception as e:
+                print(f"Error in event generator for session {session_id}: {str(e)}")
+                yield {
+                    "event": "error",
+                    "data": json.dumps({"error": str(e)})
+                }
+            finally:
+                # Only clean up the queue if analysis is complete or there was an error
+                if not connection_active:
+                    with queue_lock:
+                        if session_id in progress_queues:
+                            del progress_queues[session_id]
+
+        return EventSourceResponse(event_generator())
+    except Exception as e:
+        print(f"Error in progress stream for session {session_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
