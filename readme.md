@@ -214,6 +214,55 @@ Error: Cannot find module @rollup/rollup-linux-x64-gnu. npm has a bug related to
 
 
 
+## final run command
+
+test mode:
+
+```
+npm run dev
+python app.py
+```
+
+
+
+
+
+```
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S") && nohup python app.py > logs/backend_${TIMESTAMP}.log 2>&1 & echo $! > logs/backend_${TIMESTAMP}.pid
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S") && npm run start & echo $! > logs/frontend_${TIMESTAMP}.pid
+
+# No log for frontend
+# check forever log in forever list
+forever list
+```
+
+
+
+```mermaid
+graph TD;
+    A[App.tsx] -->|uses| B[FileUpload.tsx]
+    A -->|uses| C[Results.tsx]
+    A -->|uses| D[useFileUpload.ts]
+    
+    B -->|handles| E[signalHandler.js]
+    B -->|uploads| F[static/js/script.js]
+    
+    D -->|manages| G[FileUploadState]
+    D -->|calls| H[clip_sift_search.py]
+    
+    H -->|utilizes| I[OpenCV]
+    H -->|utilizes| J[CLIP]
+    
+    K[nginx.conf] -->|proxies| L[FastAPI]
+    L -->|serves| H
+    L -->|serves| M[static files]
+    
+    N[tailwind.config.js] -->|styles| O[static/css/styles.css]
+    P[postcss.config.js] -->|processes| N
+```
+
+
+
 
 
 # Deploy local by conda 
